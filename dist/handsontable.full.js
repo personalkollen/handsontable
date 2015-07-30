@@ -18414,6 +18414,51 @@ CopyPasteClass.prototype.init = function() {
       style.opacity = 0;
     }
   }
+  this.onKeyDownRef = this.onKeyDown.bind(this);
+  document.documentElement.addEventListener('keydown', this.onKeyDownRef, false);
+};
+CopyPasteClass.prototype.onKeyDown = function(event) {
+  var _this = this,
+      isCtrlDown = false;
+  function isActiveElementEditable() {
+    var element = document.activeElement;
+    if (element.shadowRoot && element.shadowRoot.activeElement) {
+      element = element.shadowRoot.activeElement;
+    }
+    return ['INPUT', 'SELECT', 'TEXTAREA'].indexOf(element.nodeName) > -1 || element.contentEditable === 'true';
+  }
+  if (event.metaKey) {
+    isCtrlDown = true;
+  } else if (event.ctrlKey && navigator.userAgent.indexOf('Mac') === -1) {
+    isCtrlDown = true;
+  }
+  if (isCtrlDown) {
+    if (document.activeElement !== this.elTextarea && (this.getSelectionText() !== '' || isActiveElementEditable())) {
+      return;
+    }
+    this.selectNodeText(this.elTextarea);
+    setTimeout(function() {
+      if (document.activeElement !== _this.elTextarea) {
+        _this.selectNodeText(_this.elTextarea);
+      }
+    }, 0);
+  }
+  if (isCtrlDown && (event.keyCode === 67 || event.keyCode === 86 || event.keyCode === 88)) {
+    if (event.keyCode === 88) {
+      setTimeout(function() {
+        _this.triggerCut(event);
+      }, 0);
+    } else if (event.keyCode === 86) {
+      setTimeout(function() {
+        _this.triggerPaste(event);
+      }, 0);
+    }
+  }
+};
+CopyPasteClass.prototype.selectNodeText = function(element) {
+  if (element) {
+    element.select();
+  }
 };
 CopyPasteClass.prototype.getSelectionText = function() {
   var text = '';
@@ -18429,6 +18474,7 @@ CopyPasteClass.prototype.copyable = function(string) {
     throw new Error('copyable requires string parameter');
   }
   this.elTextarea.value = string;
+  this.selectNodeText(this.elTextarea);
 };
 CopyPasteClass.prototype.onCut = function(callback) {
   this.cutCallbacks.push(callback);
